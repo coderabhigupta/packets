@@ -6,39 +6,42 @@
 #include <map>
 #include "packets/packet_capture_header.hpp"
 #include "packets/packet.hpp"
+#include "messages/executed_message.hpp"
 #include "factories/message_factory.hpp"
 #include "factories/accepted_message_factory.hpp"
 #include "factories/replaced_message_factory.hpp"
 #include "factories/canceled_message_factory.hpp"
+#include "factories/executed_message_factory.hpp"
 #include "factories/system_event_message_factory.hpp"
 
 typedef std::vector<Packet> PacketVec;
 
 int main() {
-    std::fstream packets_file;
-    packets_file.open("OUCHLMM2.incoming.packets", std::ios::in | std::ios::binary);
+    std::fstream packetsFile;
+    packetsFile.open("OUCHLMM2.incoming.packets", std::ios::in | std::ios::binary);
 
-    if (!packets_file) {
+    if (!packetsFile) {
 		std::cout << "No such file";
         return 0;
 	} 
 
-    std::map<int, PacketVec> packet_streams;
+    std::map<int, PacketVec> streamPacketMap;
     std::unique_ptr<MessageFactory> factory(new SystemEventMessageFactory());
     
     unsigned short si, ml;
     unsigned int pl;
     unsigned long long ts;
     char ptype, mtype;
-    int packet_count = 0;
+    int packetCount = 0;
 
-    while (!packets_file.eof()) {
-        packets_file.read(reinterpret_cast<char*>(&si), sizeof(si));
-        packets_file.read(reinterpret_cast<char*>(&pl), sizeof(pl));
-        packets_file.read(reinterpret_cast<char*>(&ml), sizeof(ml));
-        packets_file.read(reinterpret_cast<char*>(&ptype), sizeof(ptype));
-        packets_file.read(reinterpret_cast<char*>(&mtype), sizeof(mtype));
-        packets_file.read(reinterpret_cast<char*>(&ts), sizeof(ts));
+    while (!packetsFile.eof()) {
+        packetsFile.read(reinterpret_cast<char*>(&si), sizeof(si));
+        packetsFile.read(reinterpret_cast<char*>(&pl), sizeof(pl));
+        
+        packetsFile.read(reinterpret_cast<char*>(&ml), sizeof(ml));
+        packetsFile.read(reinterpret_cast<char*>(&ptype), sizeof(ptype));
+        packetsFile.read(reinterpret_cast<char*>(&mtype), sizeof(mtype));
+        packetsFile.read(reinterpret_cast<char*>(&ts), sizeof(ts));
         
         // Uncomment this to see contents of Packet Capture Header
         // std::cout << "\n\nStream: " << si << " Packet Length: " << pl << std::endl;
@@ -53,38 +56,39 @@ int main() {
             case 'U':
                 factory.reset(new ReplacedMessageFactory());
                 break;
-            // case 'E':
-            //     factory = new ExecutedMessageFactory();
-            //     break;
+            case 'E':
+                factory.reset(new ExecutedMessageFactory());
+                break;
             case 'C':
                 factory.reset(new CanceledMessageFactory());
                 break;
         }
 
         OuchMessage ouchMessage(ml, ptype, mtype, ts);
-        std::unique_ptr<OuchMessage> message = factory->createMessage(packets_file, ouchMessage);
+        std::unique_ptr<OuchMessage> message = factory->createMessage(packetsFile, ouchMessage);
 
         // Uncomment this to see contents of all packets
         // message->display();
 
         PacketCaptureHeader header(si, pl);
 
-        std::map<int, PacketVec>::const_iterator c_it = packet_streams.find(si);
+        std::map<int, PacketVec>::const_iterator c_it = streamPacketMap.find(si);
 
-        if (c_it == packet_streams.end()) {
-            packet_streams.insert(std::pair<int, PacketVec>(si, PacketVec()));
+        if (c_it == streamPacketMap.end()) {
+            streamPacketMap.insert(std::pair<int, PacketVec>(si, PacketVec()));
         }
 
-        packet_streams[si].push_back(Packet(header, *message));
-        packet_count++;
+        streamPacketMap[si].push_back(Packet(header, *message));
+        packetCount++;
     }
 	
-    packets_file.close();
+    packetsFile.close();
 
     // Get aggregated summary of all the parsed packets
-    int accepted = 0, replaced = 0, canceled = 0, system = 0;
+    int accepted = 0, replaced = 0, canceled = 0, system = 0, executed = 0;
+    unsigned int totalExecutedShares = 0;
 
-    for (auto cit = packet_streams.cbegin(); cit != packet_streams.cend(); ++cit) {
+    for (auto cit = streamPacketMap.cbegin(); cit != streamPacketMap.cend(); ++cit) {
         std::cout << "Stream: " << cit->first << " Number of packets: " << cit->second.size() << std::endl;
 
         char mtype = cit->second.front().getMessage().getMessageType();
@@ -102,17 +106,27 @@ int main() {
             case 'S':
                 system++;
                 break;
+            case 'E':
+                for (auto it = cit->second.begin(); it != cit->second.end(); ++it) {
+                    OuchMessage ouchMsg = it->getMessage();
+                    ExecutedMessage* execMsg = dynamic_cast<ExecutedMessage*>(&ouchMsg);
+                    totalExecutedShares += execMsg->getExecutedShares();
+                }
+                executed++;
+                break;
             default:
                 std::cout << "Unidentified" << std::endl;
         }
     }
     std::cout << "-----Aggregated OUCH Message Summary-----" << std::endl;
-    std::cout << "Total number of captured packets: " << packet_count << std::endl;
-    std::cout << "Total number of Unique streams: " << packet_streams.size() << std::endl;
+    std::cout << "Total number of captured packets: " << packetCount << std::endl;
+    std::cout << "Total number of Unique streams: " << streamPacketMap.size() << std::endl;
     std::cout << "Total number of Accepted Messages: " << accepted << std::endl;
     std::cout << "Total number of Replaced Messages: " << replaced << std::endl;
     std::cout << "Total number of Canceled Messages: " << canceled << std::endl;
     std::cout << "Total number of System Event Messages: " << system << std::endl;
+    std::cout << "Total number of Executed Messages: " << executed << std::endl;
+    std::cout << "Total number of Executed Shares: " << totalExecutedShares << std::endl;
 
     return 0;
 }

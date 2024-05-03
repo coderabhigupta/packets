@@ -19,6 +19,7 @@ SRCS = $(SRCDIR)/main.cpp \
 	   $(SRCDIR)/factories/accepted_message_factory.cpp \
 	   $(SRCDIR)/factories/canceled_message_factory.cpp \
 	   $(SRCDIR)/factories/replaced_message_factory.cpp \
+	   $(SRCDIR)/factories/executed_message_factory.cpp \
 	   $(SRCDIR)/factories/system_event_message_factory.cpp
 
 # List of object files
