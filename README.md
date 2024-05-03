@@ -1,7 +1,7 @@
 # OUCH Protocol Packet Ingestion
 
 ## Folder Structure
-
+```
 📦include
  ┣ 📂factories
  ┃ ┣ 📜accepted_message_factory.hpp
@@ -40,7 +40,7 @@
  ┃ ┣ 📜packet.cpp
  ┃ ┗ 📜packet_capture_header.cpp
  ┗ 📜main.cpp
-
+```
 ## Running Instructions
 
 ### Compile Program
