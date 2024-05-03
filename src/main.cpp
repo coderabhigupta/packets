@@ -30,14 +30,9 @@ int main() {
     unsigned int pl;
     unsigned long long ts;
     char ptype, mtype;
+    int packet_count = 0;
 
-    int count = 0, max_count = INT_MAX;
-    std::cout << "Enter number of packets to be captured: ";
-    std::cin >> max_count;
-
-    while (!packets_file.eof() && (count == 0 || count < max_count)) {
-        // std::cout << "Current stream position: " << packets_file.tellg() << std::endl;
-
+    while (!packets_file.eof()) {
         packets_file.read(reinterpret_cast<char*>(&si), sizeof(si));
         packets_file.read(reinterpret_cast<char*>(&pl), sizeof(pl));
         packets_file.read(reinterpret_cast<char*>(&ml), sizeof(ml));
@@ -81,16 +76,43 @@ int main() {
         }
 
         packet_streams[si].push_back(Packet(header, *message));
-        count++;
+        packet_count++;
     }
 	
     packets_file.close();
-    std::cout << "Total number of captured packets: " << count << std::endl;
-    std::cout << "Total number of unique streams: " << packet_streams.size() << std::endl;
+
+    // Get aggregated summary of all the parsed packets
+    int accepted = 0, replaced = 0, canceled = 0, system = 0;
 
     for (auto cit = packet_streams.cbegin(); cit != packet_streams.cend(); ++cit) {
         std::cout << "Stream: " << cit->first << " Number of packets: " << cit->second.size() << std::endl;
+
+        char mtype = cit->second.front().getMessage().getMessageType();
+
+        switch(mtype) {
+            case 'A':
+                accepted++;
+                break;
+            case 'C':
+                canceled++;
+                break;
+            case 'U':
+                replaced++;
+                break;
+            case 'S':
+                system++;
+                break;
+            default:
+                std::cout << "Unidentified" << std::endl;
+        }
     }
+    std::cout << "-----Aggregated OUCH Message Summary-----" << std::endl;
+    std::cout << "Total number of captured packets: " << packet_count << std::endl;
+    std::cout << "Total number of Unique streams: " << packet_streams.size() << std::endl;
+    std::cout << "Total number of Accepted Messages: " << accepted << std::endl;
+    std::cout << "Total number of Replaced Messages: " << replaced << std::endl;
+    std::cout << "Total number of Canceled Messages: " << canceled << std::endl;
+    std::cout << "Total number of System Event Messages: " << system << std::endl;
 
     return 0;
 }

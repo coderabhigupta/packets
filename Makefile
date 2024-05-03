@@ -14,6 +14,7 @@ SRCS = $(SRCDIR)/main.cpp \
 	   $(SRCDIR)/messages/canceled_message.cpp \
 	   $(SRCDIR)/messages/replaced_message.cpp \
 	   $(SRCDIR)/messages/system_event_message.cpp \
+	   $(SRCDIR)/messages/executed_message.cpp \
 	   $(SRCDIR)/factories/message_factory.cpp \
 	   $(SRCDIR)/factories/accepted_message_factory.cpp \
 	   $(SRCDIR)/factories/canceled_message_factory.cpp \

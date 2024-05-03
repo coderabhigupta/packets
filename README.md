@@ -1,12 +1,14 @@
-# Instructions
+# OUCH Protocol Packet Ingestion
 
-## Compile
+## Running Instructions
+
+### Compile Program
 
 ```
 make
 ```
 
-## Run
+### Execute Program
 
 ```
 ./bin/app
