@@ -25,16 +25,16 @@ int main() {
         return 0;
 	} 
 
+    std::unique_ptr<MessageFactory> factory;
     std::map<int, PacketVec> streamPacketMap;
-    std::unique_ptr<MessageFactory> factory(new SystemEventMessageFactory());
-    
-    unsigned short si, ml;
-    unsigned int pl;
-    unsigned long long ts;
-    char ptype, mtype;
     int packetCount = 0;
 
     while (!packetsFile.eof()) {
+        unsigned short si, ml;
+        unsigned int pl;
+        unsigned long long ts;
+        char ptype, mtype;
+
         packetsFile.read(reinterpret_cast<char*>(&si), sizeof(si));
         packetsFile.read(reinterpret_cast<char*>(&pl), sizeof(pl));
         
